@@ -22,10 +22,11 @@ class TerminalViewer:
             show_lines=True
         )
         table.add_column("Proxy Endpoint", style="white")
-        table.add_column("Edge PoP", justify="center")
+        table.add_column("PoP Location", justify="center")
         table.add_column("Total RTT", justify="right")
-        table.add_column("ASN Organization", style="dim")
-        table.add_column("Subnet /24 Risk", justify="center")
+        table.add_column("ASN Provider", style="dim")
+        table.add_column("Network Type", justify="center")
+        table.add_column("Fraud Status", justify="center")
         table.add_column("Score", justify="right")
         table.add_column("Assigned Tier", justify="center")
 
@@ -37,13 +38,14 @@ class TerminalViewer:
                     "-",
                     "-",
                     "-",
+                    "[red]UNREACHABLE[/red]",
                     "[red]0.0[/red]",
                     "[bold red]DISCARDED[/bold red]"
                 )
                 continue
 
-            colo_style: str = "bold green" if item.edge_pop and item.edge_pop.is_ashburn_route else "yellow"
-            colo_str: str = f"[{colo_style}]{item.edge_pop.colo_code if item.edge_pop else 'UNK'}[/{colo_style}]"
+            colo_name: str = item.edge_pop.colo_city if item.edge_pop else "Unknown"
+            colo_str: str = f"[green]{colo_name}[/green]" if item.edge_pop and item.edge_pop.is_ashburn_route else f"[yellow]{colo_name}[/yellow]"
 
             rtt_val: float = item.latency.total_rtt_ms
             rtt_style: str = "green" if rtt_val < 100.0 else ("yellow" if rtt_val < 250.0 else "red")
@@ -51,9 +53,13 @@ class TerminalViewer:
 
             asn_org: str = item.asn.as_organization[:22] if item.asn else "Unknown"
 
-            subnet_str: str = "[green]LOW[/green]"
-            if item.subnet and item.subnet.cascade_ban_risk_warning:
-                subnet_str = f"[bold red]HIGH ({item.subnet.pool_concentration_percentage}%)[/bold red]"
+            is_dc: bool = "Datacenter" in item.asn.actual_type
+            type_str: str = f"[bold red]{item.asn.actual_type}[/bold red]" if is_dc else f"[bold green]{item.asn.actual_type}[/bold green]"
+
+            if item.asn.is_spoofed_residential:
+                fraud_str: str = "[bold red]FAKE RESIDENTIAL 🚨[/bold red]"
+            else:
+                fraud_str: str = "[bold green]VERIFIED ISP ✔[/bold green]"
 
             score_style: str = "bold green" if item.quality_score >= 85.0 else ("yellow" if item.quality_score >= 50.0 else "red")
             score_str: str = f"[{score_style}]{item.quality_score:.1f}[/{score_style}]"
@@ -70,12 +76,33 @@ class TerminalViewer:
                 colo_str,
                 rtt_str,
                 asn_org,
-                subnet_str,
+                type_str,
+                fraud_str,
                 score_str,
                 tier_str
             )
 
         self.console.print(table)
+
+    def render_forensic_dossier(self, verdicts: list[ProxyAuditVerdict]) -> None:
+        spoofed_items = [v for v in verdicts if v.asn.is_spoofed_residential or ("Datacenter" in v.asn.actual_type and v.is_alive)]
+        if not spoofed_items:
+            return
+
+        for item in spoofed_items:
+            city = item.edge_pop.colo_city if item.edge_pop else "Unknown"
+            colo = item.edge_pop.colo_code if item.edge_pop else "UNK"
+            dossier_text: str = (
+                f"[bold yellow]Endpoint:[/bold yellow] {item.proxy.export_format}\n"
+                f"[bold yellow]Claimed Type:[/bold yellow] Residential (Home ISP)\n"
+                f"[bold red]BGP ASN Org:[/bold red] {item.asn.as_organization} (Commercial Hosting / Datacenter)\n"
+                f"[bold red]CDN Edge PoP:[/bold red] {colo} ({city})\n\n"
+                f"[bold red]FORENSIC TECHNICAL VERDICT:[/bold red]\n"
+                f"🚨 [bold white on red] SELLER FRAUD DETECTED [/bold white on red]\n"
+                f"Physical traffic terminates at a commercial server rack in {city}, NOT a residential internet connection.\n"
+                f"Anti-bot systems (Cloudflare, Akamai, Datadome) will identify this as a datacenter IP and issue instant blocks."
+            )
+            self.console.print(Panel(dossier_text, title="Technical Forensic Audit Dossier", border_style="red"))
 
     def render_metrics_summary(self, verdicts: list[ProxyAuditVerdict], elapsed_seconds: float) -> None:
         total: int = len(verdicts)

@@ -8,8 +8,10 @@ class ASNValidator:
 
     DATACENTER_ASN_KEYWORDS: set[str] = {
         "HETZNER", "OVH", "DIGITALOCEAN", "CHOOPA", "VULTR", "AMAZON",
-        "AWS", "GOOGLE-CLOUD", "MICROSOFT", "AZURE", "LINODE", "AKAMAI",
-        "FASTLY", "CLOUDFLARE", "DATACAMP", "M247", "COGENT", "LEASENAME"
+        "AWS", "GOOGLE", "MICROSOFT", "AZURE", "LINODE", "AKAMAI",
+        "FASTLY", "CLOUDFLARE", "DATACAMP", "M247", "COGENT", "LEASENAME",
+        "HIVELOCITY", "CONTABO", "SERVERIUS", "SELECTEL", "QUADRANET",
+        "EQUINIX", "INAP", "HOSTINGER", "NAMECHEAP", "RACKSPACE"
     }
 
     @classmethod
@@ -39,7 +41,7 @@ class ASNValidator:
                         actual_type: str = "Datacenter / Hosting" if is_datacenter else "Residential / ISP"
 
                         is_spoofed: bool = (claimed_type.lower() == "residential") and is_datacenter
-                        fraud_penalty: float = 45.0 if is_spoofed else 0.0
+                        fraud_penalty: float = 55.0 if is_spoofed else 0.0
 
                         return ASNVerificationResult(
                             asn_number=asn_number,

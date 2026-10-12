@@ -12,12 +12,8 @@ from core.logger import app_logger
 
 DEMO_PROXIES: list[str] = [
     "1.1.1.1:8080:demo_user:secret_pass",
-    "1.0.0.1:8080:demo_user:secret_pass",
     "8.8.8.8:8080:demo_user:secret_pass",
-    "8.8.4.4:8080:demo_user:secret_pass",
-    "104.16.123.96:8080:demo_user:secret_pass",
-    "104.16.123.97:8080:demo_user:secret_pass",
-    "142.250.190.46:8080:demo_user:secret_pass"
+    "104.16.123.96:8080:demo_user:secret_pass"
 ]
 
 
@@ -59,6 +55,7 @@ async def execute_cli_audit() -> None:
     elapsed_duration: float = time.perf_counter() - start_time
 
     viewer.render_results_table(verdicts)
+    viewer.render_forensic_dossier(verdicts)
     viewer.render_metrics_summary(verdicts, elapsed_duration)
 
     ProxyPoolExporter.export_all(verdicts)
