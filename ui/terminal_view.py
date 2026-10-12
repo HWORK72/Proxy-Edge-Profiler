@@ -85,24 +85,58 @@ class TerminalViewer:
         self.console.print(table)
 
     def render_forensic_dossier(self, verdicts: list[ProxyAuditVerdict]) -> None:
-        spoofed_items = [v for v in verdicts if v.asn.is_spoofed_residential or ("Datacenter" in v.asn.actual_type and v.is_alive)]
-        if not spoofed_items:
-            return
+        for item in verdicts:
+            if not item.is_alive:
+                continue
 
-        for item in spoofed_items:
-            city = item.edge_pop.colo_city if item.edge_pop else "Unknown"
+            city = item.edge_pop.colo_city if item.edge_pop else "Unknown Location"
             colo = item.edge_pop.colo_code if item.edge_pop else "UNK"
-            dossier_text: str = (
+            org = item.asn.as_organization
+
+            if item.asn.is_spoofed_residential or "Datacenter" in item.asn.actual_type:
+                title = "Technical Forensic Audit Dossier (Anomaly Detected)"
+                border = "red"
+                verdict_badge = "🚨 [bold white on red] SELLER FRAUD DETECTED [/bold white on red]"
+                verdict_desc = (
+                    f"Physical traffic terminates at a commercial server rack in {city}, NOT a residential internet connection.\n"
+                    f"Autonomous System '{org}' is registered to a datacenter/hosting provider.\n"
+                    f"Anti-bot engines (Cloudflare, Akamai, Datadome) will identify this as an automated IP and issue instant blocks."
+                )
+            elif item.tier == ProxyQualityTier.GOD_TIER_ASHBURN:
+                title = "Elite Asset Verification Certificate"
+                border = "bright_green"
+                verdict_badge = "🏆 [bold white on green] GOD-TIER ASHBURN ROUTE VERIFIED [/bold white on green]"
+                verdict_desc = (
+                    f"Direct physical landing detected at Ashburn, VA (IAD PoP).\n"
+                    f"Provides the lowest theoretical round-trip latency to Shopify and Nike AWS us-east-1 clusters.\n"
+                    f"BGP Autonomous System '{org}' is verified as clean with zero datacenter leaks."
+                )
+            else:
+                title = "ISP Integrity Certificate"
+                border = "green"
+                verdict_badge = "✔ [bold white on green] GENUINE RESIDENTIAL BROADBAND [/bold white on green]"
+                verdict_desc = (
+                    f"Physical traffic originates from a verified residential ISP network in {city}.\n"
+                    f"Autonomous System '{org}' belongs to a legitimate domestic broadband provider.\n"
+                    f"Low probability of automated bot classification."
+                )
+
+            if item.subnet and item.subnet.cascade_ban_risk_warning:
+                verdict_desc += (
+                    f"\n\n[bold yellow]⚠️ WARNING: Subnet concentration ({item.subnet.pool_concentration_percentage}%) "
+                    f"exceeds safety threshold on {item.subnet.cidr_24}. Elevated cascade ban risk.[/bold yellow]"
+                )
+
+            dossier_text = (
                 f"[bold yellow]Endpoint:[/bold yellow] {item.proxy.export_format}\n"
-                f"[bold yellow]Claimed Type:[/bold yellow] Residential (Home ISP)\n"
-                f"[bold red]BGP ASN Org:[/bold red] {item.asn.as_organization} (Commercial Hosting / Datacenter)\n"
-                f"[bold red]CDN Edge PoP:[/bold red] {colo} ({city})\n\n"
-                f"[bold red]FORENSIC TECHNICAL VERDICT:[/bold red]\n"
-                f"🚨 [bold white on red] SELLER FRAUD DETECTED [/bold white on red]\n"
-                f"Physical traffic terminates at a commercial server rack in {city}, NOT a residential internet connection.\n"
-                f"Anti-bot systems (Cloudflare, Akamai, Datadome) will identify this as a datacenter IP and issue instant blocks."
+                f"[bold yellow]Claimed Type:[/bold yellow] {item.asn.claimed_type}\n"
+                f"[bold cyan]BGP ASN Org:[/bold cyan] {org}\n"
+                f"[bold cyan]CDN Edge PoP:[/bold cyan] {colo} ({city})\n\n"
+                f"[bold]FORENSIC TECHNICAL VERDICT:[/bold]\n"
+                f"{verdict_badge}\n"
+                f"{verdict_desc}"
             )
-            self.console.print(Panel(dossier_text, title="Technical Forensic Audit Dossier", border_style="red"))
+            self.console.print(Panel(dossier_text, title=title, border_style=border))
 
     def render_metrics_summary(self, verdicts: list[ProxyAuditVerdict], elapsed_seconds: float) -> None:
         total: int = len(verdicts)
