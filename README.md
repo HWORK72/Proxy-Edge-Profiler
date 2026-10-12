@@ -34,7 +34,15 @@ Built from the ground up to detect fraudulent proxy claims, dissect L3/L4/L7 Any
 
 ## Quick Start
 
-1. Add your proxies into `proxies.txt`:
+1. Install Dependencies:
+
+Install all required production packages into your virtual environment:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Add your proxies into `proxies.txt`:
 
 Paste your proxy pool into the `proxies.txt` file located in the project root (one proxy per line, formats: `ip:port:user:pass` or `ip:port`):
 
@@ -43,7 +51,7 @@ Paste your proxy pool into the `proxies.txt` file located in the project root (o
 104.16.123.96:8080:username:password
 ```
 
-2. Standalone CLI Audit:
+3. Standalone CLI Audit:
 
 Run the profiler directly from terminal without spinning up containers:
 
@@ -51,7 +59,7 @@ Run the profiler directly from terminal without spinning up containers:
 python run_cli.py
 ```
 
-3. Live Network Interface Probe:
+4. Live Network Interface Probe:
 
 Inspect your own local network connection, public IP, and edge route:
 
@@ -59,15 +67,15 @@ Inspect your own local network connection, public IP, and edge route:
 python test_live_edge.py
 ```
 
-4. Full Containerized Stack (FastAPI + PostgreSQL + Redis):
+5. Full Containerized Stack (FastAPI + PostgreSQL + Redis):
 
-Launch the entire service in background:
+Launch the entire service in background (Docker handles all dependencies automatically):
 
 ```bash
 docker compose up --build -d
 ```
 
-5. Stress Benchmark:
+6. Stress Benchmark:
 
 Verify event loop throughput on 2,500 synthetic proxies:
 
